@@ -42,17 +42,16 @@ else
     echo "creating conda env '$ENV_NAME'"
     "$CONDA" create -y -n "$ENV_NAME" -c conda-forge python=3.11
 fi
-ENV_PYTHON="$("$CONDA" run -n "$ENV_NAME" python -c 'import sys; print(sys.executable)')"
 
 # Conda packages first so conda doesn't clobber pip-installed packages (e.g. i2rt's pinned numpy)
 echo "installing pinocchio and casadi"
 "$CONDA" install -y -n "$ENV_NAME" -c conda-forge pinocchio casadi
 
 echo "installing libs/i2rt"
-uv pip install --python "$ENV_PYTHON" -e "$REPO_DIR/libs/i2rt"
+conda run -n "$ENV_NAME" uv pip install -e "$REPO_DIR/libs/i2rt"
 
 echo "installing humanola"
-uv pip install --python "$ENV_PYTHON" --extra-index-url https://releases.humanola.com/py/ humanola
+conda run -n "$ENV_NAME" uv pip install --extra-index-url https://releases.humanola.com/py/ humanola
 
 # CAN
 for iface in "${CAN_IFACES[@]}"; do
