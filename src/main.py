@@ -59,7 +59,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--sim", type=bool)
     args = parser.parse_args()
-
+    urdf_path = (
+        pathlib.Path(__file__).parent.parent
+        / "libs/i2rt/i2rt/robot_models/arm/yam/v1/yam.urdf"
+    )
     if args.sim:
         sim = True
     else:
@@ -69,11 +72,7 @@ if __name__ == "__main__":
         "can1",
         state=ArmState(
             joints=np.zeros(7),
-            solver=ArmSolver(
-                pathlib.Path(
-                    "/home/humanola/Documents/i2rt/i2rt/robot_models/arm/yam/v1/yam.urdf"
-                )
-            ),
+            solver=ArmSolver(urdf_path),
         ),
         sim=sim,
     )
@@ -81,11 +80,7 @@ if __name__ == "__main__":
         "can0",
         state=ArmState(
             joints=np.zeros(7),
-            solver=ArmSolver(
-                pathlib.Path(
-                    "/home/humanola/Documents/i2rt/i2rt/robot_models/arm/yam/v1/yam.urdf"
-                )
-            ),
+            solver=ArmSolver(pathlib.Path(urdf_path)),
         ),
         sim=sim,
     )

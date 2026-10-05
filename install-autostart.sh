@@ -43,7 +43,11 @@ else
     "$CONDA" create -y -n "$ENV_NAME" -c conda-forge python=3.11
 fi
 
-# Conda packages first so conda doesn't clobber pip-installed packages (e.g. i2rt's pinned numpy)
+echo "installing libs/i2rt"
+cd libs/i2rt
+conda run -n "$ENV_NAME" uv pip install -e .
+cd ../..
+
 echo "installing pinocchio and casadi"
 "$CONDA" install -y -n "$ENV_NAME" -c conda-forge pinocchio casadi
 
