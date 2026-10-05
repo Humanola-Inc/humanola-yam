@@ -116,7 +116,7 @@ if __name__ == "__main__":
             name="Left Yam",
             desc="",
             rate=120,
-            v=YamData(left_arm=left_arm, right_arm=right_arm),
+            v=ArmData(left_arm=left_arm, right_arm=right_arm),
             fields=[
                 dataset.Field(
                     name="left_arm.joint1",
