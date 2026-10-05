@@ -71,6 +71,7 @@ for iface in "${CAN_IFACES[@]}"; do
     CAN_PRE+="ExecStartPre=$IP_BIN link set $iface up type can bitrate $CAN_BITRATE"$'\n'
 done
 
+ENV_PYTHON=conda run -n "$ENV_NAME" which python3
 echo "installing $SERVICE_NAME service"
 sudo tee "/etc/systemd/system/$SERVICE_NAME.service" >/dev/null <<EOF
 [Unit]
