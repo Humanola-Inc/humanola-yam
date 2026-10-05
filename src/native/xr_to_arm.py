@@ -58,7 +58,7 @@ class XrConfig:
 
 class Xr2Arm:
     XR_POSE_TRANSFORM = np.array(
-        [[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]], dtype=np.float64
+        [[1, 0, 0, 0], [0, 0, -1, 0], [0, 1, 0, 0], [0, 0, 0, 1]], dtype=np.float64
     )
 
     def __init__(
