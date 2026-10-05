@@ -43,13 +43,13 @@ else
     "$CONDA" create -y -n "$ENV_NAME" -c conda-forge python=3.11
 fi
 
+echo "installing pinocchio and casadi"
+"$CONDA" install -y -n "$ENV_NAME" -c conda-forge pinocchio casadi mujoco
+
 echo "installing libs/i2rt"
 cd libs/i2rt
 conda run -n "$ENV_NAME" uv pip install -e .
 cd ../..
-
-echo "installing pinocchio and casadi"
-"$CONDA" install -y -n "$ENV_NAME" -c conda-forge pinocchio casadi
 
 echo "installing libs/i2rt"
 conda run -n "$ENV_NAME" uv pip install -e "$REPO_DIR/libs/i2rt"
