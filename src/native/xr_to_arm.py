@@ -32,6 +32,8 @@ class XrConfig:
     arm_gripper: robo.Query
     arm_reset: robo.Query
     arm_init: robo.Query
+    arm_restart: robo.Query
+    arm_lr: robo.Query
 
     @staticmethod
     def left() -> XrConfig:
@@ -42,6 +44,8 @@ class XrConfig:
             arm_gripper=robo.Query(kind=robo.SensorKind.Btn, name="xr.left.aim"),
             arm_reset=robo.Query(kind=robo.SensorKind.Btn, name="xr.left.secondary"),
             arm_init=robo.Query(kind=robo.SensorKind.Btn, name="xr.left.primary"),
+            arm_restart=robo.Query(kind=robo.SensorKind.Btn, name="xr.left.joy"),
+            arm_lr=robo.Query(kind=robo.SensorKind.Joy, name="xr.left.joy"),
         )
 
     @staticmethod
@@ -53,6 +57,8 @@ class XrConfig:
             arm_gripper=robo.Query(kind=robo.SensorKind.Btn, name="xr.right.aim"),
             arm_reset=robo.Query(kind=robo.SensorKind.Btn, name="xr.right.secondary"),
             arm_init=robo.Query(kind=robo.SensorKind.Btn, name="xr.right.primary"),
+            arm_restart=robo.Query(kind=robo.SensorKind.Btn, name="xr.right.joy"),
+            arm_lr=robo.Query(kind=robo.SensorKind.Joy, name="xr.left.joy"),
         )
 
 
@@ -154,4 +160,21 @@ class Xr2Arm:
         ):
             self.reset_flat()
             return
+        prev_restart_btn = prev.get(self.config.arm_restart)
+        cur_restart_btn = cur.get(self.config.arm_restart)
+        if (
+            prev_restart_btn is not None
+            and cur_restart_btn is not None
+            and prev_restart_btn.as_btn().pressed
+            and not cur_restart_btn.as_btn().pressed
+        ):
+            self.arm.restart()
+            return
+        cur_lr = cur.get(self.config.arm_lr)
+        if cur_lr is not None:
+            cur_x_joy = cur_lr.as_joy().x
+            if abs(cur_x_joy) > 0.2:
+                joints = self.arm.state.joints.copy()
+                joints[0] += 10 / 180 * math.pi
+                self.arm.state.set_with_joints(joints)
         self.arm.update()

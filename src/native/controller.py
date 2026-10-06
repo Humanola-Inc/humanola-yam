@@ -1,5 +1,6 @@
 import math
 import multiprocessing as mp
+import subprocess
 import time
 from dataclasses import dataclass
 from typing import Optional
@@ -70,21 +71,32 @@ class ArmController:
         init_state: bool = True,
         sim: bool = False,
     ):
+        self.channel = channel
+        self.sim = sim
         self.state = state
-        self.is_ready = mp.Event()
-        self.ctrl_ev_queue = mp.Queue()
-        self.joints_queue = mp.Queue()
-        self.process = mp.Process(
-            target=offshore_controller,
-            args=(channel, sim, self.is_ready, self.ctrl_ev_queue, self.joints_queue),
-        )
-        self.process.start()
-        self.is_ready.wait()
+        self.__start_process()
         if init_state:
             joints = self.get_joints()
             self.state.set_with_joints(joints)
         else:
             self.update()
+
+    def __start_process(self):
+        self.is_ready = mp.Event()
+        self.ctrl_ev_queue = mp.Queue()
+        self.joints_queue = mp.Queue()
+        self.process = mp.Process(
+            target=offshore_controller,
+            args=(
+                self.channel,
+                self.sim,
+                self.is_ready,
+                self.ctrl_ev_queue,
+                self.joints_queue,
+            ),
+        )
+        self.process.start()
+        self.is_ready.wait()
 
     def update(self):
         self.ctrl_ev_queue.put(JointCtrl(self.state.joints, None))
@@ -96,6 +108,25 @@ class ArmController:
     def get_joints(self) -> npt.NDArray[np.float64]:
         self.ctrl_ev_queue.put(GetJoint())
         return self.joints_queue.get()
+
+    def restart(self):
+        self.close()
+        subprocess.run(["ip", "link", "set", self.channel, "down"], check=True)
+        subprocess.run(
+            [
+                "ip",
+                "link",
+                "set",
+                self.channel,
+                "up",
+                "type",
+                "can",
+                "bitrate",
+                "1000000",
+            ],
+            check=True,
+        )
+        self.__start_process()
 
     def close(self):
         self.update_over_time(np.array([0, 1, 1, -1, 1, 1, 0]) * math.pi / 180, 1)
