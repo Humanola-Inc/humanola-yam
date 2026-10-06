@@ -81,11 +81,9 @@ class Xr2Arm:
 
     def reset_init(self):
         self.arm.update_over_time(self.init_joints, 1)
-        time.sleep(1)
 
     def reset_flat(self):
         self.arm.update_over_time(np.array([0, 1, 1, -1, 1, 1, 0]) * math.pi / 180, 1)
-        time.sleep(1)
 
     def open(self):
         self.reset_init()
