@@ -174,7 +174,10 @@ class Xr2Arm:
         if cur_lr is not None:
             cur_x_joy = cur_lr.as_joy().x
             if abs(cur_x_joy) > 0.2:
-                joints = self.arm.state.joints.copy()
-                joints[0] += 10 / 180 * math.pi
+                joints = self.arm.state.joints
+                if cur_x_joy > 0:
+                    joints[0] += 10 / 180 * math.pi
+                else:
+                    joints[0] -= 10 / 180 * math.pi
                 self.arm.state.set_with_joints(joints)
         self.arm.update()
