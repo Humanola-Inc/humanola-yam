@@ -192,7 +192,7 @@ if __name__ == "__main__":
                 ),
                 dataset.Field(
                     name="right_arm.gripper",
-                    dtype=dataset.AngleType(unit=dataset.LengthUnit.RAD, shape=[1]),
+                    dtype=dataset.AngleType(unit=dataset.AngleUnit.RAD, shape=[1]),
                 ),
             ],
         )
