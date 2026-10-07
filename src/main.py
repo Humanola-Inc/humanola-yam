@@ -43,12 +43,16 @@ class ArmData:
         frame = robo.DataFrame()
         for joint in left_joints[:6]:
             frame.attach(dataset.Num(joint))
-        frame.attach(dataset.Num(0))
-        frame.attach(dataset.Num(0))
+        left_gripper = left_joints[6]
+        frame.attach(dataset.Num(left_gripper * -0.04695))
+        frame.attach(dataset.Num(left_gripper * -0.04695))
+        frame.attach(dataset.Num(left_gripper))
         for joint in right_joints[:6]:
             frame.attach(dataset.Num(joint))
-        frame.attach(dataset.Num(0))
-        frame.attach(dataset.Num(0))
+        right_gripper = right_joints[6]
+        frame.attach(dataset.Num(right_gripper * -0.04695))
+        frame.attach(dataset.Num(right_gripper * -0.04695))
+        frame.attach(dataset.Num(right_gripper))
         return frame
 
     def close_stream(self):
@@ -113,7 +117,7 @@ if __name__ == "__main__":
         )
         .attach_data(
             topic="src:data",
-            name="Left Yam",
+            name="Yam Arms",
             desc="",
             rate=120,
             v=ArmData(left_arm=left_arm, right_arm=right_arm),
@@ -144,10 +148,14 @@ if __name__ == "__main__":
                 ),
                 dataset.Field(
                     name="left_arm.joint7",
-                    dtype=dataset.AngleType(unit=dataset.AngleUnit.RAD, shape=[1]),
+                    dtype=dataset.AngleType(unit=dataset.LengthUnit.M, shape=[1]),
                 ),
                 dataset.Field(
                     name="left_arm.joint8",
+                    dtype=dataset.AngleType(unit=dataset.LengthUnit.M, shape=[1]),
+                ),
+                dataset.Field(
+                    name="left_arm.gripper",
                     dtype=dataset.AngleType(unit=dataset.AngleUnit.RAD, shape=[1]),
                 ),
                 dataset.Field(
@@ -176,11 +184,15 @@ if __name__ == "__main__":
                 ),
                 dataset.Field(
                     name="right_arm.joint7",
-                    dtype=dataset.AngleType(unit=dataset.AngleUnit.RAD, shape=[1]),
+                    dtype=dataset.AngleType(unit=dataset.LengthUnit.M, shape=[1]),
                 ),
                 dataset.Field(
                     name="right_arm.joint8",
-                    dtype=dataset.AngleType(unit=dataset.AngleUnit.RAD, shape=[1]),
+                    dtype=dataset.AngleType(unit=dataset.LengthUnit.M, shape=[1]),
+                ),
+                dataset.Field(
+                    name="right_arm.gripper",
+                    dtype=dataset.AngleType(unit=dataset.LengthUnit.RAD, shape=[1]),
                 ),
             ],
         )
