@@ -148,11 +148,11 @@ if __name__ == "__main__":
                 ),
                 dataset.Field(
                     name="left_arm.joint7",
-                    dtype=dataset.AngleType(unit=dataset.LengthUnit.M, shape=[1]),
+                    dtype=dataset.LengthType(unit=dataset.LengthUnit.M, shape=[1]),
                 ),
                 dataset.Field(
                     name="left_arm.joint8",
-                    dtype=dataset.AngleType(unit=dataset.LengthUnit.M, shape=[1]),
+                    dtype=dataset.LengthType(unit=dataset.LengthUnit.M, shape=[1]),
                 ),
                 dataset.Field(
                     name="left_arm.gripper",
@@ -184,11 +184,11 @@ if __name__ == "__main__":
                 ),
                 dataset.Field(
                     name="right_arm.joint7",
-                    dtype=dataset.AngleType(unit=dataset.LengthUnit.M, shape=[1]),
+                    dtype=dataset.LengthType(unit=dataset.LengthUnit.M, shape=[1]),
                 ),
                 dataset.Field(
                     name="right_arm.joint8",
-                    dtype=dataset.AngleType(unit=dataset.LengthUnit.M, shape=[1]),
+                    dtype=dataset.LengthType(unit=dataset.LengthUnit.M, shape=[1]),
                 ),
                 dataset.Field(
                     name="right_arm.gripper",
