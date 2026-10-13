@@ -61,16 +61,12 @@ class ArmData:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--sim", type=bool)
+    parser.add_argument("--sim", action="store_true")
     args = parser.parse_args()
     urdf_path = (
         pathlib.Path(__file__).parent.parent
         / "libs/i2rt/i2rt/robot_models/arm/yam/v1/yam.urdf"
     )
-    if args.sim:
-        sim = True
-    else:
-        sim = False
 
     left_arm = ArmController(
         "can1",
@@ -78,15 +74,15 @@ if __name__ == "__main__":
             joints=np.zeros(7),
             solver=ArmSolver(urdf_path),
         ),
-        sim=sim,
+        sim=args.sim,
     )
     right_arm = ArmController(
         "can0",
         state=ArmState(
             joints=np.zeros(7),
-            solver=ArmSolver(pathlib.Path(urdf_path)),
+            solver=ArmSolver(urdf_path),
         ),
-        sim=sim,
+        sim=args.sim,
     )
 
     channel, runtime = (

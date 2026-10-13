@@ -4,14 +4,120 @@ import subprocess
 import threading
 import time
 from dataclasses import dataclass
-from typing import Optional
+from multiprocessing.connection import Connection
+from multiprocessing.synchronize import Event
+from typing import Optional, Protocol
 
 import numpy as np
 import numpy.typing as npt
-from i2rt.robots.get_robot import get_yam_robot
-from i2rt.robots.utils import ArmType, GripperType
 
 from .state import ArmState
+
+
+class Arm(Protocol):
+    def __init__(self, channel: str):
+        pass
+
+    def start(self):
+        pass
+
+    def restart(self):
+        pass
+
+    def update(self, joints: npt.NDArray[np.float64]):
+        pass
+
+    def update_over_time(self, target_joints: npt.NDArray[np.float64], duration: float):
+        pass
+
+    def get_joints(self) -> npt.NDArray[np.float64]:
+        pass
+
+    def close(self):
+        pass
+
+
+class YamSim:
+    def __init__(self, channel: str):
+        self.channel = channel
+        self.joints = np.zeros(7)
+
+    def start(self):
+        pass
+
+    def restart(self):
+        pass
+
+    def update(self, joints: npt.NDArray[np.float64]):
+        self.joints = joints
+
+    def update_over_time(self, target_joints: npt.NDArray[np.float64], duration: float):
+        start_time = 0
+        delta_joints = (target_joints - self.joints) / duration
+        while start_time < duration:
+            self.joints = self.joints + delta_joints * 0.1
+            start_time += 0.1
+            time.sleep(0.1)
+        self.joints = target_joints
+
+    def get_joints(self) -> npt.NDArray[np.float64]:
+        return self.joints
+
+    def close(self):
+        pass
+
+
+class YamNotSim:
+    def __init__(self, channel: str):
+        self.channel = channel
+
+    def start(self):
+        # imported here so --sim runs without i2rt installed
+        from i2rt.robots.get_robot import get_yam_robot
+        from i2rt.robots.utils import ArmType, GripperType
+
+        self.arm = get_yam_robot(
+            channel=self.channel,
+            arm_type=ArmType.YAM,
+            gripper_type=GripperType.LINEAR_4310,
+            zero_gravity_mode=True,
+            sim=False,
+            enable_auto_recovery=True,
+        )
+
+    def restart(self):
+        subprocess.run(["ip", "link", "set", self.channel, "down"], check=True)
+        subprocess.run(
+            [
+                "ip",
+                "link",
+                "set",
+                self.channel,
+                "up",
+                "type",
+                "can",
+                "bitrate",
+                "1000000",
+            ],
+            check=True,
+        )
+        self.start()
+
+    def update(self, joints: npt.NDArray[np.float64]):
+        self.arm.command_joint_pos(joints)
+
+    def update_over_time(self, target_joints: npt.NDArray[np.float64], duration: float):
+        self.arm.move_joints(target_joints, duration)
+
+    def get_joints(self) -> npt.NDArray[np.float64]:
+        joints = np.zeros(7)
+        obs = self.arm.get_observations()
+        joints[:6] = obs["joint_pos"]
+        joints[6] = obs["gripper_pos"]
+        return joints
+
+    def close(self):
+        self.arm.close()
 
 
 @dataclass
@@ -31,18 +137,16 @@ class Close:
 def offshore_controller(
     channel: str,
     sim: bool,
-    is_ready,
-    ctrl_rx,
-    joints_rx,
-):
-    arm = get_yam_robot(
-        channel=channel,
-        arm_type=ArmType.YAM,
-        gripper_type=GripperType.LINEAR_4310,
-        zero_gravity_mode=True,
-        sim=sim,
-        enable_auto_recovery=True,
-    )
+    restart: bool,
+    is_ready: Event,
+    ctrl_rx: Connection,
+    joints_rx: Connection,
+) -> None:
+    arm: Arm = YamSim(channel) if sim else YamNotSim(channel)
+    if restart:
+        arm.restart()
+    else:
+        arm.start()
 
     def joints_loop():
         while True:
@@ -50,11 +154,7 @@ def offshore_controller(
             if isinstance(ev, Close):
                 break
             elif isinstance(ev, GetJoint):
-                joints = np.zeros(7)
-                obs = arm.get_observations()
-                joints[:6] = obs["joint_pos"]
-                joints[6] = obs["gripper_pos"]
-                joints_rx.send(joints)
+                joints_rx.send(arm.get_joints())
 
     def ctrl_loop():
         while True:
@@ -63,9 +163,9 @@ def offshore_controller(
                 break
             elif isinstance(ev, JointCtrl):
                 if ev.duration is None:
-                    arm.command_joint_pos(ev.joints)
+                    arm.update(ev.joints)
                 else:
-                    arm.move_joints(ev.joints, ev.duration)
+                    arm.update_over_time(ev.joints, ev.duration)
 
     joints_thread = threading.Thread(target=joints_loop, daemon=True)
     ctrl_thread = threading.Thread(target=ctrl_loop, daemon=True)
@@ -97,7 +197,7 @@ class ArmController:
         else:
             self.update()
 
-    def __start_process(self):
+    def __start_process(self, restart: bool = False):
         self.is_ready = mp.Event()
         ctrl_rx, self.ctrl_tx = mp.Pipe(duplex=False)
         self.joints_tx, joints_rx = mp.Pipe()
@@ -106,6 +206,7 @@ class ArmController:
             args=(
                 self.channel,
                 self.sim,
+                restart,
                 self.is_ready,
                 ctrl_rx,
                 joints_rx,
@@ -127,22 +228,7 @@ class ArmController:
 
     def restart(self):
         self.close()
-        subprocess.run(["ip", "link", "set", self.channel, "down"], check=True)
-        subprocess.run(
-            [
-                "ip",
-                "link",
-                "set",
-                self.channel,
-                "up",
-                "type",
-                "can",
-                "bitrate",
-                "1000000",
-            ],
-            check=True,
-        )
-        self.__start_process()
+        self.__start_process(restart=True)
 
     def close(self):
         self.update_over_time(np.array([0, 1, 1, -1, 1, 1, 0]) * math.pi / 180, 1)
