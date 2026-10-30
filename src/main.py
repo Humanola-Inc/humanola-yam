@@ -5,7 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
 from humanola import constants, dataset, robo
-from native import ArmController, ArmSolver, ArmState, Xr2Arm, XrConfig
+from native import ArmController, ArmState, MujocoSolver, Xr2Arm, XrConfig
 
 
 ARM_FIELDS = [
@@ -162,16 +162,16 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--sim", action="store_true")
     args = parser.parse_args()
-    urdf_path = (
+    xml_path = (
         pathlib.Path(__file__).parent.parent
-        / "libs/i2rt/i2rt/robot_models/arm/yam/v1/yam.urdf"
+        / "libs/i2rt/i2rt/robot_models/arm/yam/v1/yam.xml"
     )
 
     left_arm = ArmController(
         "can1",
         state=ArmState(
             joints=np.zeros(7),
-            solver=ArmSolver(urdf_path),
+            solver=MujocoSolver(xml_path),
         ),
         sim=args.sim,
     )
@@ -179,7 +179,7 @@ if __name__ == "__main__":
         "can0",
         state=ArmState(
             joints=np.zeros(7),
-            solver=ArmSolver(urdf_path),
+            solver=MujocoSolver(xml_path),
         ),
         sim=args.sim,
     )
