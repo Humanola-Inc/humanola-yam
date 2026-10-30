@@ -93,7 +93,7 @@ class Xr2Arm:
 
     def recv_delta(
         self, prev: robo.Device, cur: robo.Device
-    ) -> npt.NDArray[np.float64] | None:
+    ) -> npt.NDArray[np.float64]:
         # position and rotation
         cur_act_btn = cur.get(self.config.ef_act)
         if cur_act_btn is not None and cur_act_btn.as_btn().value > 0.5:
@@ -149,7 +149,7 @@ class Xr2Arm:
             and not cur_reset_btn.as_btn().pressed
         ):
             self.reset_init()
-            return
+            return self.arm.state.joints
         prev_init_btn = prev.get(self.config.arm_init)
         cur_init_btn = cur.get(self.config.arm_init)
         # reset
@@ -160,7 +160,7 @@ class Xr2Arm:
             and not cur_init_btn.as_btn().pressed
         ):
             self.reset_flat()
-            return
+            return self.arm.state.joints
         prev_restart_btn = prev.get(self.config.arm_restart)
         cur_restart_btn = cur.get(self.config.arm_restart)
         if (
@@ -170,7 +170,7 @@ class Xr2Arm:
             and not cur_restart_btn.as_btn().pressed
         ):
             self.arm.restart()
-            return
+            return self.arm.state.joints
         cur_lr = cur.get(self.config.arm_lr)
         if cur_lr is not None:
             cur_x_joy = cur_lr.as_joy().x
@@ -182,3 +182,4 @@ class Xr2Arm:
                     joints[0] += 1 / 180 * math.pi
                 self.arm.state.set_with_joints(joints)
         self.arm.update()
+        return self.arm.state.joints

@@ -120,6 +120,32 @@ class YamNotSim:
         self.arm.close()
 
 
+class YamLeaderNotSim(YamNotSim):
+    def start(self):
+        # imported here so --sim runs without i2rt installed
+        from i2rt.robots.get_robot import get_yam_robot
+        from i2rt.robots.utils import ArmType, GripperType
+
+        self.arm = get_yam_robot(
+            channel=self.channel,
+            arm_type=ArmType.YAM,
+            gripper_type=GripperType.YAM_TEACHING_HANDLE,
+            zero_gravity_mode=True,
+            sim=False,
+            enable_auto_recovery=True,
+        )
+
+    def get_joints(self) -> npt.NDArray[np.float64]:
+        joints = np.zeros(7)
+        joints[:6] = self.arm.get_observations()["joint_pos"]
+        # the teaching handle trigger is an encoder on the same bus, empty
+        # until the first CAN read lands
+        encoders = self.arm.motor_chain.get_same_bus_device_states()
+        if encoders:
+            joints[6] = 1 - encoders[0].position
+        return joints
+
+
 @dataclass
 class JointCtrl:
     joints: npt.NDArray[np.float64]

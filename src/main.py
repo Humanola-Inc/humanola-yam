@@ -7,6 +7,7 @@ import numpy as np
 from humanola import constants, dataset, robo
 from native import ArmController, ArmState, MujocoSolver, Xr2Arm, XrConfig
 
+RUNTIME = None
 
 ARM_FIELDS = [
     dataset.Field(
@@ -101,26 +102,52 @@ def joints_frame(left_joints, right_joints) -> robo.DataFrame:
     return frame
 
 
+class XrAction:
+    def __init__(self):
+        self.stream = None
+
+    def open(self):
+        self.stream = RUNTIME.get_hub().open_data(
+            topic="act/arms",
+            name="Yam Arms Action",
+            desc="Records the joint targets sent to yam arms",
+            to=[robo.Addr.Dataset],
+            fields=ARM_FIELDS,
+        )
+        return self
+
+    def record(self, left_joints, right_joints):
+        self.stream.capture(joints_frame(left_joints, right_joints).update_tp_us())
+
+    def close_stream(self):
+        self.stream.close()
+        self.stream = None
+
+
 class XrCtrl:
     def __init__(self, left_arm: Xr2Arm, right_arm: Xr2Arm):
         self.arms = [left_arm, right_arm]
+        self.action = XrAction()
 
     def open(self):
+        self.action.open()
         self.pool = ThreadPoolExecutor(max_workers=2)
         self.pool.map(Xr2Arm.open, self.arms)
         return self
 
     def recv_delta(self, prev: robo.Device, cur: robo.Device):
-        self.pool.map(
+        left_joints, right_joints = self.pool.map(
             Xr2Arm.recv_delta,
             self.arms,
             [prev] * len(self.arms),
             [cur] * len(self.arms),
         )
+        self.action.record(left_joints, right_joints)
 
     def close_stream(self):
         self.pool.map(Xr2Arm.close_stream, self.arms)
         self.pool.shutdown()
+        self.action.close_stream()
 
 
 class ArmData:
@@ -137,25 +164,6 @@ class ArmData:
 
     def close_stream(self):
         self.pool.shutdown()
-
-
-class ArmAction:
-    def __init__(self, left_arm: ArmController, right_arm: ArmController):
-        self.left_arm = left_arm
-        self.right_arm = right_arm
-
-    def open(self):
-        return self
-
-    def get_data(self):
-        # state.joints holds the targets last sent to the arms; copy since the
-        # xr thread mutates them in place
-        return joints_frame(
-            self.left_arm.state.joints.copy(), self.right_arm.state.joints.copy()
-        )
-
-    def close_stream(self):
-        pass
 
 
 if __name__ == "__main__":
@@ -189,16 +197,7 @@ if __name__ == "__main__":
             api_url="https://grpc.humanola.com",
             api_key="<YOUR_API_KEY>",
             robo_id="<YOUR_ROBO_ID>",
-        )
-        .attach_usb_camera(
-            # topic="ego",
-            # name="egocentric-camera",
-            # desc="zed mini",
-            # width=2560,
-            # height=720,
-            # rate=30,
-            # kind=robo.ImageKind.Stereo,
-            # id=0,
+            name="Yam",
         )
         .attach_device_subscriber(
             topic=constants.DEV_XR_CONTROLLER_TOPIC,
@@ -211,23 +210,16 @@ if __name__ == "__main__":
             ),
         )
         .attach_data(
-            topic="src:data",
+            topic=constants.SRC_DATA,
             name="Yam Arms",
             desc="",
             rate=120,
             v=ArmData(left_arm=left_arm, right_arm=right_arm),
             fields=ARM_FIELDS,
         )
-        .attach_data(
-            topic="act/arms",
-            name="Yam Arms Action",
-            desc="Joint targets sent to the yam arms",
-            rate=120,
-            v=ArmAction(left_arm=left_arm, right_arm=right_arm),
-            fields=ARM_FIELDS,
-        )
         .run()
     )
+    RUNTIME = runtime
     try:
         runtime.wait_for_interrupt()
     finally:
