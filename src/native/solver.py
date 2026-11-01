@@ -147,6 +147,9 @@ class MujocoSolver:
         )
         self.posture_task = mink.PostureTask(self.model, cost=0.003)
         self.posture_task.set_target(np.zeros(self.model.nq))
+        # l2 regularisation towards the previous solution, keeps consecutive
+        # solves from jumping between ik branches
+        self.smooth_task = mink.PostureTask(self.model, cost=0.1)
 
     def forward(self, joints: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
         self.configuration.update(joints)
@@ -161,7 +164,8 @@ class MujocoSolver:
             prev_joints = np.zeros(6)
         self.configuration.update(prev_joints)
         self.ef_task.set_target(mink.SE3.from_matrix(pose))
-        tasks = [self.ef_task, self.posture_task]
+        self.smooth_task.set_target(prev_joints)
+        tasks = [self.ef_task, self.posture_task, self.smooth_task]
         for _ in range(self.max_iters):
             # dt = 1 so each step is a full joint displacement
             vel = mink.solve_ik(
