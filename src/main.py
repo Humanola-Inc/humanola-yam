@@ -176,7 +176,7 @@ if __name__ == "__main__":
     )
 
     left_arm = ArmController(
-        "can1",
+        "yam-can-left",
         state=ArmState(
             joints=np.zeros(7),
             solver=MujocoSolver(xml_path),
@@ -184,7 +184,7 @@ if __name__ == "__main__":
         sim=args.sim,
     )
     right_arm = ArmController(
-        "can0",
+        "yam-can-right",
         state=ArmState(
             joints=np.zeros(7),
             solver=MujocoSolver(xml_path),
@@ -197,7 +197,37 @@ if __name__ == "__main__":
             api_url="https://grpc.humanola.com",
             api_key="<YOUR_API_KEY>",
             robo_id="<YOUR_ROBO_ID>",
-            name="Yam",
+            name="XR",
+            min_log_level=10,
+        )
+        .attach_usb_camera(
+            topic="cam/ego",
+            id=12,
+            width=3840,
+            height=1080,
+            rate=30,
+            kind=robo.ImageKind.Stereo,
+            name="Egocentric Camera",
+        )
+        .attach_usb_camera(
+            topic="cam/right",
+            id=10,
+            width=1280,
+            height=720,
+            rate=30,
+            kind=robo.ImageKind.Stereo,
+            name="Right Arm",
+            to=[robo.Addr.Dataset],
+        )
+        .attach_usb_camera(
+            topic="cam/left",
+            id=4,
+            width=1280,
+            height=720,
+            rate=30,
+            kind=robo.ImageKind.Mono,
+            name="Left Arm",
+            to=[robo.Addr.Dataset],
         )
         .attach_device_subscriber(
             topic=constants.DEV_XR_CONTROLLER_TOPIC,
