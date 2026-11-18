@@ -1,10 +1,10 @@
 import argparse
-import pathlib
 import threading
 from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
 from humanola import constants, dataset, robo
+from i2rt.robots.utils import ArmType
 from native import ArmController, ArmState, MujocoSolver, Xr2Arm, XrConfig
 
 RUNTIME = None
@@ -170,10 +170,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--sim", action="store_true")
     args = parser.parse_args()
-    xml_path = (
-        pathlib.Path(__file__).parent.parent
-        / "libs/i2rt/i2rt/robot_models/arm/yam/v1/yam.xml"
-    )
+    xml_path = ArmType.YAM.get_xml_path()
 
     left_arm = ArmController(
         "yam-can-left",
