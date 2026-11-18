@@ -1,5 +1,6 @@
 import math
 import multiprocessing as mp
+import signal
 import subprocess
 import threading
 import time
@@ -12,6 +13,9 @@ import numpy as np
 import numpy.typing as npt
 
 from .state import ArmState
+
+# Rest position (6 joints + gripper) both arms move to on close.
+REST_JOINTS_POS = np.array([0, 1, 1, -1, 1, 1, 0]) * math.pi / 180
 
 
 class Arm(Protocol):
@@ -168,6 +172,8 @@ def offshore_controller(
     ctrl_rx: Connection,
     joints_rx: Connection,
 ) -> None:
+    # Ctrl+C is handled by the parent, which sends Close().
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
     arm: Arm = YamSim(channel) if sim else YamNotSim(channel)
     if restart:
         arm.restart()
@@ -257,7 +263,12 @@ class ArmController:
         self.__start_process(restart=True)
 
     def close(self):
-        self.update_over_time(np.array([0, 1, 1, -1, 1, 1, 0]) * math.pi / 180, 1)
-        self.joints_tx.send(Close())
-        self.ctrl_tx.send(Close())
-        self.process.join()
+        if not self.process.is_alive():
+            return
+        try:
+            self.update_over_time(REST_JOINTS_POS, 1)
+            self.joints_tx.send(Close())
+            self.ctrl_tx.send(Close())
+        except (BrokenPipeError, EOFError):
+            pass  # Controller process already exited
+        self.process.join(timeout=5)c
