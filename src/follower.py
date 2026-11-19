@@ -143,6 +143,8 @@ if __name__ == "__main__":
     RUNTIME = runtime
     try:
         runtime.wait_for_interrupt()
+    except KeyboardInterrupt:
+        pass
     finally:
         arm.update_over_time(np.array([0, 1, 1, -1, 1, 1, 0]) * math.pi / 180, 1)
         arm.close()

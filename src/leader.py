@@ -55,5 +55,7 @@ if __name__ == "__main__":
     )
     try:
         runtime.wait_for_interrupt()
+    except KeyboardInterrupt:
+        pass
     finally:
         arm.close()

@@ -249,6 +249,8 @@ if __name__ == "__main__":
     RUNTIME = runtime
     try:
         runtime.wait_for_interrupt()
+    except KeyboardInterrupt:
+        pass
     finally:
         l_t = threading.Thread(target=lambda: left_arm.close())
         l_t.start()
