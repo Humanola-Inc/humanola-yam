@@ -271,4 +271,4 @@ class ArmController:
             self.ctrl_tx.send(Close())
         except (BrokenPipeError, EOFError):
             pass  # Controller process already exited
-        self.process.join(timeout=5)c
+        self.process.join(timeout=5)
