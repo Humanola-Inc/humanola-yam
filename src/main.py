@@ -181,6 +181,8 @@ if __name__ == "__main__":
     parser.add_argument("--simulcast", action="store_true")
     parser.add_argument("--bitrate-kbps", type=int, default=5000)
     parser.add_argument("--max-framerate", type=float, default=30.0)
+    parser.add_argument("--bench-kit", action="store_true")
+    parser.add_argument("--no-qr-overlay", action="store_true")
     args = parser.parse_args()
     xml_path = ArmType.YAM.get_xml_path()
 
@@ -214,6 +216,11 @@ if __name__ == "__main__":
         .with_bitrate_kbps(args.bitrate_kbps)
         .with_max_framerate(args.max_framerate)
     )
+    if args.bench_kit:
+        try:
+            config = config.with_bench_kit(qr_overlay=not args.no_qr_overlay)
+        except RuntimeError as e:
+            parser.error(f"--bench-kit needs a humanola wheel built with feature bench_kit ({e})")
 
     channel, runtime = (
         config.attach_usb_camera(
