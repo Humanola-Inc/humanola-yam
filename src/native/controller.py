@@ -164,6 +164,16 @@ class Close:
     pass
 
 
+def name_process(name: str) -> None:
+    """Names this process in /proc (top, ps, CPU per task), max 15 bytes."""
+    try:
+        with open("/proc/self/comm", "w") as f:
+            f.write(name[:15])
+    except OSError:
+        # Not Linux: the name is only for monitoring.
+        pass
+
+
 def offshore_controller(
     channel: str,
     sim: bool,
@@ -172,6 +182,7 @@ def offshore_controller(
     ctrl_rx: Connection,
     joints_rx: Connection,
 ) -> None:
+    name_process(f"arm:{channel.removeprefix('yam-can-')}")
     # Ctrl+C is handled by the parent, which sends Close().
     signal.signal(signal.SIGINT, signal.SIG_IGN)
     arm: Arm = YamSim(channel) if sim else YamNotSim(channel)

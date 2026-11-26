@@ -9,6 +9,14 @@ from native import ArmController, ArmState, MujocoSolver, Xr2Arm, XrConfig
 
 RUNTIME = None
 
+CODECS = {
+    "vp8": robo.VideoCodec.Vp8,
+    "h264": robo.VideoCodec.H264,
+    "vp9": robo.VideoCodec.Vp9,
+    "av1": robo.VideoCodec.Av1,
+    "h265": robo.VideoCodec.H265,
+}
+
 ARM_FIELDS = [
     dataset.Field(
         name="left_arm.joint1",
@@ -169,7 +177,33 @@ class ArmData:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--sim", action="store_true")
+    parser.add_argument("--codec", choices=CODECS, default="h264")
+    parser.add_argument("--simulcast", action="store_true")
+    parser.add_argument("--bitrate-kbps", type=int, default=5000)
+    parser.add_argument("--max-framerate", type=float, default=30.0)
+    parser.add_argument("--bench-kit", action="store_true")
+    parser.add_argument("--no-qr-overlay", action="store_true")
     args = parser.parse_args()
+
+    config = (
+        robo.RoboConfig(
+            api_url="https://grpc.humanola.com",
+            api_key="<YOUR_API_KEY>",
+            robo_id="<YOUR_ROBO_ID>",
+            name="XR",
+            min_log_level=10,
+        )
+        .with_video_codec(CODECS[args.codec])
+        .with_simulcast(args.simulcast)
+        .with_bitrate_kbps(args.bitrate_kbps)
+        .with_max_framerate(args.max_framerate)
+    )
+    if args.bench_kit:
+        try:
+            config = config.with_bench_kit(qr_overlay=not args.no_qr_overlay)
+        except RuntimeError as e:
+            parser.error(f"--bench-kit needs a humanola wheel built with feature bench_kit ({e})")
+
     xml_path = ArmType.YAM.get_xml_path()
 
     left_arm = ArmController(
@@ -190,14 +224,7 @@ if __name__ == "__main__":
     )
 
     channel, runtime = (
-        robo.RoboConfig(
-            api_url="https://grpc.humanola.com",
-            api_key="<YOUR_API_KEY>",
-            robo_id="<YOUR_ROBO_ID>",
-            name="XR",
-            min_log_level=10,
-        )
-        .attach_usb_camera(
+        config.attach_usb_camera(
             topic="cam/ego",
             id=12,
             width=3840,
