@@ -9,6 +9,14 @@ from native import ArmController, ArmState, MujocoSolver, Xr2Arm, XrConfig
 
 RUNTIME = None
 
+CODECS = {
+    "vp8": robo.VideoCodec.Vp8,
+    "h264": robo.VideoCodec.H264,
+    "vp9": robo.VideoCodec.Vp9,
+    "av1": robo.VideoCodec.Av1,
+    "h265": robo.VideoCodec.H265,
+}
+
 ARM_FIELDS = [
     dataset.Field(
         name="left_arm.joint1",
@@ -169,6 +177,10 @@ class ArmData:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--sim", action="store_true")
+    parser.add_argument("--codec", choices=CODECS, default="h264")
+    parser.add_argument("--simulcast", action="store_true")
+    parser.add_argument("--bitrate-kbps", type=int, default=5000)
+    parser.add_argument("--max-framerate", type=float, default=30.0)
     args = parser.parse_args()
     xml_path = ArmType.YAM.get_xml_path()
 
@@ -189,7 +201,7 @@ if __name__ == "__main__":
         sim=args.sim,
     )
 
-    channel, runtime = (
+    config = (
         robo.RoboConfig(
             api_url="https://grpc.humanola.com",
             api_key="<YOUR_API_KEY>",
@@ -197,7 +209,14 @@ if __name__ == "__main__":
             name="XR",
             min_log_level=10,
         )
-        .attach_usb_camera(
+        .with_video_codec(CODECS[args.codec])
+        .with_simulcast(args.simulcast)
+        .with_bitrate_kbps(args.bitrate_kbps)
+        .with_max_framerate(args.max_framerate)
+    )
+
+    channel, runtime = (
+        config.attach_usb_camera(
             topic="cam/ego",
             id=12,
             width=3840,
