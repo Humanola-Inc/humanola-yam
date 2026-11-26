@@ -184,24 +184,6 @@ if __name__ == "__main__":
     parser.add_argument("--bench-kit", action="store_true")
     parser.add_argument("--no-qr-overlay", action="store_true")
     args = parser.parse_args()
-    xml_path = ArmType.YAM.get_xml_path()
-
-    left_arm = ArmController(
-        "yam-can-left",
-        state=ArmState(
-            joints=np.zeros(7),
-            solver=MujocoSolver(xml_path),
-        ),
-        sim=args.sim,
-    )
-    right_arm = ArmController(
-        "yam-can-right",
-        state=ArmState(
-            joints=np.zeros(7),
-            solver=MujocoSolver(xml_path),
-        ),
-        sim=args.sim,
-    )
 
     config = (
         robo.RoboConfig(
@@ -221,6 +203,25 @@ if __name__ == "__main__":
             config = config.with_bench_kit(qr_overlay=not args.no_qr_overlay)
         except RuntimeError as e:
             parser.error(f"--bench-kit needs a humanola wheel built with feature bench_kit ({e})")
+
+    xml_path = ArmType.YAM.get_xml_path()
+
+    left_arm = ArmController(
+        "yam-can-left",
+        state=ArmState(
+            joints=np.zeros(7),
+            solver=MujocoSolver(xml_path),
+        ),
+        sim=args.sim,
+    )
+    right_arm = ArmController(
+        "yam-can-right",
+        state=ArmState(
+            joints=np.zeros(7),
+            solver=MujocoSolver(xml_path),
+        ),
+        sim=args.sim,
+    )
 
     channel, runtime = (
         config.attach_usb_camera(
